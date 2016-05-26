@@ -8,6 +8,7 @@ import sys
 from flask import Flask
 from flask_restful import Resource, Api
 import subprocess
+import signal
 
 def usage():
 	print "Usage:"
@@ -33,12 +34,25 @@ def send_info():
 	print r.status_code
 	return
 
+def killProcess():
+    p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
+    out, err = p.communicate()
+    for line in out.splitlines():
+        if "fogo_decoder_video" in line:
+            pid = int(line.split(None, 1)[0])
+            os.kill(pid, signal.SIGKILL)       
+
 app = Flask(__name__)
 api = Api(app)
 
 class Decoder(Resource):
+    running = False	    
     def get(self):
-    	subprocess.call("~/FOGO-2015/Debug/run_decoder.sh")
+        if not running:
+    	    subprocess.call("~/FOGO-2015/Debug/run_decoder.sh")
+        else:
+            
+         
         return {'response': 'decoder_ok'}
 class Buffer(Resource):
     def get(self):

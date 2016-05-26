@@ -59,10 +59,10 @@ class Buffer(Resource):
         return {'response': 'buffer_ok'}
 class Ptp(Resource):
     def get(self, state):
-	if state == "on":
-		p = subprocess.Popen(["ptpd2 -i eth0 -s"], stdout=subprocess.PIPE, shell=True)
-	else:
-		terminate("ptpd2")
+        if state == "on":
+            p = subprocess.Popen(["ptpd2 -i eth0 -s"], stdout=subprocess.PIPE, shell=True)
+         else:
+            terminate("ptpd2")
         return {'response': 'sender_ok'}
 
 api.add_resource(Buffer, '/increase_buffer')

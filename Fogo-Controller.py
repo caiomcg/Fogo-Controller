@@ -41,6 +41,7 @@ def killProcess():
         if "fogo_decoder_video" in line:
             pid = int(line.split(None, 1)[0])
             os.kill(pid, signal.SIGKILL)       
+    return
 
 app = Flask(__name__)
 api = Api(app)
@@ -51,7 +52,7 @@ class Decoder(Resource):
         if not running:
     	    subprocess.call("~/FOGO-2015/Debug/run_decoder.sh")
         else:
-            
+            killProcess() 
          
         return {'response': 'decoder_ok'}
 class Buffer(Resource):

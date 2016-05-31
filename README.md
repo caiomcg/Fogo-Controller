@@ -24,8 +24,9 @@ To manually install the dependencies you will have to:
 
 1. Check if Python is installed and update the build.
 2. Install python-pip.
-3. Install Flask.
-4. Install Flask Restful.
+3. Install Requests.
+4. Install Flask.
+5. Install Flask Restful.
 
 ## Executing
 

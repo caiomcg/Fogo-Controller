@@ -1,41 +1,75 @@
 #!/usr/bin/env python
 
 import json
+import getopt
 import requests
 import socket
 import os
 import sys
-from flask import Flask
-from flask_restful import Resource, Api
+
 import subprocess
 import signal
 import fcntl
 import struct
 
+from flask import Flask
+from flask_restful import Resource, Api
+
 def usage():
-	print "Usage:"
-	print "Fogo-Controller [MACHINE NAME] [IP]"
+	print("NAME")
+	print("        Fogo-Controller - A simple Python HTTP Restful server for the Fogo Controller Android and iOS APP.")
+	print("SYNOPSIS")
+	print("        Fogo-Controller <MACHINE NAME> <SERVER IP> [OPTIONS]")
+	print("DESCRIPTION")
+	print("        Initiate a HTTP Rest server and wait for commands to control the Fogo Suite.")
+	print("        -m or --machine")
+	print("            The machine name displayed by the mobile application")
+	print("        -i or --ip")
+	print("            The server ip to communticate with.")
+	print("        -n or --network")
+	print("            The used network interface(eth0 is default")
 	return
 
-if len(sys.argv) == 2 or len(sys.argv) == 1:
-	print "The name of the machine is needed to proceed!"
-	usage()
-	sys.exit()
+def parse_arguments():
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], 'm:i:n:', ['machine=', 'ip=', 'network='])
+	except getopt.GetoptError:
+		usage()
+		sys.exit(2)
+	information = {}
+	information.update({"network" : "eth0"})
+
+	for opt, arg in opts:
+	    if opt in ('-m', '--machine'):
+	        information["machine"] = arg
+	    elif opt in ('-i', '--ip'):
+	        information["ip"] = arg
+	    elif opt in ('-n', '--network'):
+	        information["network"] = arg
+	    else:
+	        usage()
+	        sys.exit(1)
+
+	print(information)
+	if len(information) != 3:
+		usage()
+		sys.exit(1)
+	return information 
 
 def get_ip_address(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15]))[20:24])
 
-def send_info():
-	local_ip = get_ip_address("wlan0")
+def send_info(network, machine_name, ip_address):
+	local_ip = get_ip_address(network)
 	print(local_ip)
 
 	from uuid import getnode as get_mac
 	mac = get_mac()
 
-	name = sys.argv[1]
+	name = machine_name
 	try:
-		r = requests.post("http://" + sys.argv[2] + ":3000/fogo_machines/new", data=json.dumps({"name" : name, "ip" : str(local_ip), "mac" : str(mac)}), headers={"content-type": "application/json"})
+		r = requests.post("http://" + ip_address + ":3000/fogo_machines/new", data=json.dumps({"name" : name, "ip" : str(local_ip), "mac" : str(mac)}), headers={"content-type": "application/json"})
 	except:
 		print("Communication to server failed. Is it running?")
 		sys.exit(1)
@@ -71,7 +105,9 @@ class Ptp(Resource):
 
 
 if __name__ == '__main__':
-	send_info()
+	information = parse_arguments()
+	send_info(information["network"], information["machine"], information["ip"])
+
 	app = Flask(__name__)
 	api = Api(app)
 

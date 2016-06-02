@@ -15,12 +15,18 @@ import struct
 from flask import Flask
 from flask_restful import Resource, Api
 
+class bcolors:
+    HEADER = '\033[1;37m'
+    EXAMPLE = '\033[0;35m'
+    ERROR = '\033[1;31m'
+    ENDC = '\033[0m'
+
 def usage():
-	print("NAME")
+	print(bcolors.HEADER + "NAME" + bcolors.ENDC)
 	print("        Fogo-Controller - A simple Python HTTP Restful server for the Fogo Controller Android and iOS APP.")
-	print("SYNOPSIS")
+	print(bcolors.HEADER + "SYNOPSIS" + bcolors.ENDC)
 	print("        Fogo-Controller <MACHINE NAME> <SERVER IP> [OPTIONS]")
-	print("DESCRIPTION")
+	print(bcolors.HEADER + "DESCRIPTION" + bcolors.ENDC)
 	print("        Initiate a HTTP Rest server and wait for commands to control the Fogo Suite.")
 	print("        -m or --machine=NAME")
 	print("            The machine name displayed by the mobile application")
@@ -28,11 +34,11 @@ def usage():
 	print("            The server ip to communticate with.")
 	print("        -n or --network=INTERFACE")
 	print("            The used network interface(eth0 is default")
-	print("EXIT STATUS")
+	print(bcolors.HEADER + "EXIT STATUS" + bcolors.ENDC)
 	print("        0 - If ok")
 	print("        1 - If failed")
-	print("USE EXAMPLE")
-	print("        Fogo-Controller.py --machine=Fogo1 --ip=192.168.0.2 --network=eth1")
+	print(bcolors.HEADER + "USE EXAMPLE" + bcolors.ENDC)
+	print(bcolors.EXAMPLE + "        Fogo-Controller.py --machine=Fogo1 --ip=192.168.0.2 --network=eth1" + bcolors.ENDC)
 	return
 
 def parse_arguments():
@@ -66,7 +72,6 @@ def get_ip_address(ifname):
 
 def send_info(network, machine_name, ip_address):
 	local_ip = get_ip_address(network)
-	print(local_ip)
 
 	from uuid import getnode as get_mac
 	mac = get_mac()
@@ -75,9 +80,8 @@ def send_info(network, machine_name, ip_address):
 	try:
 		r = requests.post("http://" + ip_address + ":3000/fogo_machines/new", data=json.dumps({"name" : name, "ip" : str(local_ip), "mac" : str(mac)}), headers={"content-type": "application/json"}, timeout=3.0)
 	except:
-		print("Communication to server failed. Is it running?")
+		print(bcolors.ERROR + "Communication to server failed. Is it running?" + bcolors.ENDC)
 		sys.exit(1)
-	print r.status_code
 	return
 
 def terminate(name):
@@ -111,7 +115,7 @@ class Ptp(Resource):
 if __name__ == '__main__':
 	information = parse_arguments()
 	send_info(information["network"], information["machine"], information["ip"])
-
+	print(bcolors.HEADER + "Fogo-Controller is now running." +bcolors.ENDC)
 	app = Flask(__name__)
 	api = Api(app)
 

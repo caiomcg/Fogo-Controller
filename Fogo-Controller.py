@@ -9,6 +9,8 @@ from flask import Flask
 from flask_restful import Resource, Api
 import subprocess
 import signal
+import fcntl
+import struct
 
 def usage():
 	print "Usage:"
@@ -20,17 +22,23 @@ if len(sys.argv) == 2 or len(sys.argv) == 1:
 	usage()
 	sys.exit()
 
+def get_ip_address(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15]))[20:24])
+
 def send_info():
-	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	s.connect(("8.8.8.8",80))
-	local_ip = s.getsockname()[0]
-	s.close()
+	local_ip = get_ip_address("wlan0")
+	print(local_ip)
 
 	from uuid import getnode as get_mac
 	mac = get_mac()
 
 	name = sys.argv[1]
-	r = requests.post("http://" + sys.argv[2] + ":3000/fogo_machines/new", data=json.dumps({"name" : name, "ip" : str(local_ip), "mac" : str(mac)}), headers={"content-type": "application/json"})
+	try:
+		r = requests.post("http://" + sys.argv[2] + ":3000/fogo_machines/new", data=json.dumps({"name" : name, "ip" : str(local_ip), "mac" : str(mac)}), headers={"content-type": "application/json"})
+	except:
+		print("Communication to server failed. Is it running?")
+		sys.exit(1)
 	print r.status_code
 	return
 
@@ -40,10 +48,6 @@ def terminate(name):
     except:
         print "already killed"
     return
-
-app = Flask(__name__)
-api = Api(app)
-
 
 class Decoder(Resource):	    
     def get(self, state):
@@ -65,11 +69,17 @@ class Ptp(Resource):
 		terminate("ptpd2")
         return {'response': 'sender_ok'}
 
-api.add_resource(Buffer, '/increase_buffer')
-api.add_resource(Decoder, '/run_decoder/<state>')
-api.add_resource(Ptp, '/run_ptp/<state>')
 
-send_info()
 if __name__ == '__main__':
-	app.run(host="0.0.0.0", debug=False, use_reloader=False)
+	send_info()
+	app = Flask(__name__)
+	api = Api(app)
 
+	api.add_resource(Buffer, '/increase_buffer')
+	api.add_resource(Decoder, '/run_decoder/<state>')
+	api.add_resource(Ptp, '/run_ptp/<state>')
+
+	app.run(host="0.0.0.0", debug=False, use_reloader=False)
+else:
+	print("This script is not a module!\n\n")
+	print("Please visit https://github.com/caiomcg/Fogo-Controller")

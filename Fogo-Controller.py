@@ -22,12 +22,17 @@ def usage():
 	print("        Fogo-Controller <MACHINE NAME> <SERVER IP> [OPTIONS]")
 	print("DESCRIPTION")
 	print("        Initiate a HTTP Rest server and wait for commands to control the Fogo Suite.")
-	print("        -m or --machine")
+	print("        -m or --machine=NAME")
 	print("            The machine name displayed by the mobile application")
-	print("        -i or --ip")
+	print("        -i or --ip=IP")
 	print("            The server ip to communticate with.")
-	print("        -n or --network")
+	print("        -n or --network=INTERFACE")
 	print("            The used network interface(eth0 is default")
+	print("EXIT STATUS")
+	print("        0 - If ok")
+	print("        1 - If failed")
+	print("USE EXAMPLE")
+	print("        Fogo-Controller.py --machine=Fogo1 --ip=192.168.0.2 --network=eth1")
 	return
 
 def parse_arguments():
@@ -50,7 +55,6 @@ def parse_arguments():
 	        usage()
 	        sys.exit(1)
 
-	print(information)
 	if len(information) != 3:
 		usage()
 		sys.exit(1)
@@ -69,7 +73,7 @@ def send_info(network, machine_name, ip_address):
 
 	name = machine_name
 	try:
-		r = requests.post("http://" + ip_address + ":3000/fogo_machines/new", data=json.dumps({"name" : name, "ip" : str(local_ip), "mac" : str(mac)}), headers={"content-type": "application/json"})
+		r = requests.post("http://" + ip_address + ":3000/fogo_machines/new", data=json.dumps({"name" : name, "ip" : str(local_ip), "mac" : str(mac)}), headers={"content-type": "application/json"}, timeout=3.0)
 	except:
 		print("Communication to server failed. Is it running?")
 		sys.exit(1)

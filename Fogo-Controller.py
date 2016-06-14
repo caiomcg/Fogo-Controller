@@ -12,6 +12,7 @@ import signal
 import fcntl
 import struct
 
+from uuid import getnode as get_mac
 from flask import Flask
 from flask_restful import Resource, Api
 
@@ -19,6 +20,7 @@ class bcolors:
     HEADER = '\033[1;37m'
     EXAMPLE = '\033[0;35m'
     ERROR = '\033[1;31m'
+    VERBOSE = '\033[1;35m'
     ENDC = '\033[0m'
 
 def usage():
@@ -33,7 +35,9 @@ def usage():
 	print("        -i or --ip=IP")
 	print("            The server ip to communticate with.")
 	print("        -n or --network=INTERFACE")
-	print("            The used network interface(eth0 is default")
+	print("            The used network interface(eth0 is default)")
+	print("        -v or --verbose")
+	print("            Active verbosity")
 	print(bcolors.HEADER + "EXIT STATUS" + bcolors.ENDC)
 	print("        0 - If ok")
 	print("        1 - If failed")
@@ -41,12 +45,24 @@ def usage():
 	print(bcolors.EXAMPLE + "        Fogo-Controller.py --machine=Fogo1 --ip=192.168.0.2 --network=eth1" + bcolors.ENDC)
 	return
 
+def valid_dict(dict):
+	valid = ["network", "machine", "ip"]
+
+	for key in dict:
+		if key != "verbose":
+			valid.remove(key)
+	if len(valid) == 0:
+		return True
+	else:
+		return False
+
 def parse_arguments():
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'm:i:n:', ['machine=', 'ip=', 'network='])
+		opts, args = getopt.getopt(sys.argv[1:], 'vm:i:n:', ['machine=', 'ip=', 'network=', 'verbose'])
 	except getopt.GetoptError:
 		usage()
-		sys.exit(2)
+		sys.exit(1)
+
 	information = {}
 	information.update({"network" : "eth0"})
 
@@ -57,14 +73,21 @@ def parse_arguments():
 	        information["ip"] = arg
 	    elif opt in ('-n', '--network'):
 	        information["network"] = arg
+	    elif opt in ('-v', '--verbose'):
+	        information["verbose"] = "on"
 	    else:
 	        usage()
 	        sys.exit(1)
 
-	if len(information) != 3:
+	if not valid_dict(information):
 		usage()
 		sys.exit(1)
 	return information 
+
+def verbose(text, active):
+	if active:
+		print(bcolors.VERBOSE + "--" +text + bcolors.ENDC)
+	return
 
 def get_ip_address(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -73,7 +96,6 @@ def get_ip_address(ifname):
 def send_info(network, machine_name, ip_address):
 	local_ip = get_ip_address(network)
 
-	from uuid import getnode as get_mac
 	mac = get_mac()
 
 	name = machine_name
@@ -114,14 +136,25 @@ class Ptp(Resource):
 
 if __name__ == '__main__':
 	information = parse_arguments()
+	active_verbose = information.has_key("verbose")
+
+	verbose("Arguments successfuly parsed", active_verbose)
+	
 	send_info(information["network"], information["machine"], information["ip"])
+	
+	verbose("Sending local information to server", active_verbose)
+	
 	print(bcolors.HEADER + "Fogo-Controller is now running." +bcolors.ENDC)
 	app = Flask(__name__)
 	api = Api(app)
+	
+	verbose("Preparing server", active_verbose)
 
 	api.add_resource(Buffer, '/increase_buffer')
 	api.add_resource(Decoder, '/run_decoder/<state>')
 	api.add_resource(Ptp, '/run_ptp/<state>')
+
+	verbose("Starting server", active_verbose)
 
 	app.run(host="0.0.0.0", debug=False, use_reloader=False)
 else:
